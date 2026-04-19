@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ИИ Туториал</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card { background: white; padding: 25px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        h1 { color: #333; margin: 0 0 10px 0; }
+        h2 { color: #555; font-size: 18px; margin: 0 0 20px 0; border-left: 4px solid #667eea; padding-left: 15px; }
+        h3 { color: #333; font-size: 16px; margin: 0 0 15px 0; }
+
+        /* Форма загрузки */
+        .upload-area { border: 2px dashed #ccc; padding: 30px; text-align: center; border-radius: 15px; background: #fafafa; }
+        .upload-area:hover { border-color: #667eea; background: #f5f3ff; }
+        input[type="file"] { padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin: 10px; }
+        select { padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin: 10px; }
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-size: 16px; transition: transform 0.2s; }
+        button:hover { transform: scale(1.02); }
+
+        /* Графики */
+        .charts-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .chart-box { flex: 1; min-width: 250px; background: #f8f9fa; padding: 20px; border-radius: 15px; text-align: center; }
+
+        /* Чек-лист */
+        .step { padding: 12px; margin: 8px 0; background: #f0f0f0; border-radius: 10px; display: flex; align-items: center; gap: 10px; transition: all 0.3s; }
+        .step.completed { background: #c8e6c9; text-decoration: line-through; opacity: 0.8; }
+        .step-number { font-weight: bold; background: #667eea; color: white; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .step.completed .step-number { background: #4caf50; }
+        .step-description { flex: 1; }
+        .help-btn { background: #ff9800; padding: 10px 20px; font-size: 12px; }
+        .help-btn:hover { background: #f57c00; transform: scale(1.02); }
+
+        /* Кастомные чекбоксы */
+        .step input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 28px;
+            height: 28px;
+            border: 2px solid #ff9800;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            margin-right: 20px;
+        }
+
+        .step input[type="checkbox"]:hover {
+            background-color: rgba(255, 107, 53, 0.1);
+            transform: scale(1.05);
+        }
+
+        .step input[type="checkbox"]:active {
+            transform: scale(0.95);
+        }
+
+        .step input[type="checkbox"]:checked {
+            background: #ff9800;
+            border-color: #ff9800;
+        }
+
+        .step input[type="checkbox"]:checked::before {
+            content: "✓";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .step input[type="checkbox"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.3);
+        }
+
+        /* Кнопки */
+        .button-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .btn-secondary { background: #6c757d; }
+        .btn-success { background: #4caf50; }
+
+        /* Статусы */
+        .loading { text-align: center; padding: 30px; color: #666; }
+        .error { color: red; padding: 10px; background: #ffebee; border-radius: 10px; margin: 10px 0; }
+        .success { color: green; padding: 10px; background: #e8f5e9; border-radius: 10px; margin: 10px 0; }
+        .stats { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 15px; text-align: center; flex: 1; min-width: 100px; }
+        .stat-number { font-size: 28px; font-weight: bold; }
+        .stat-label { font-size: 12px; opacity: 0.9; }
+
+        .session-info { background: #e3f2fd; padding: 12px; border-radius: 10px; margin-bottom: 20px; word-break: break-all; font-size: 12px; }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .card { padding: 15px; }
+            .step { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>🤖 Интерактивный ИИ-туториал</h1>
+        <p style="color: #666;">Загрузите инструкцию, и ИИ разобьёт её на шаги с визуализацией прогресса</p>
+
+        <!-- Форма загрузки -->
+        <div id="uploadSection">
+            <div class="upload-area">
+                <h3>📤 Загрузите инструкцию</h3>
+                <p>Поддерживаются .txt, .jpg, .png</p>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <input type="file" id="fileInput" name="file" accept=".txt,.jpg,.jpeg,.png" required/>
+                    <select id="fileType" name="type">
+                        <option value="text">📄 Текстовый файл</option>
+                        <option value="image">📷 Изображение (OCR)</option>
+                    </select>
+                    <button type="submit">🚀 Загрузить и обработать</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Результаты -->
+        <div id="resultsSection" style="display: none;">
+            <div id="sessionInfo" class="session-info"></div>
+
+            <!-- Статистика -->
+            <div class="stats" id="statsPanel">
+                <div class="stat-card"><div class="stat-number" id="totalSteps">0</div><div class="stat-label">Всего шагов</div></div>
+                <div class="stat-card"><div class="stat-number" id="completedSteps">0</div><div class="stat-label">Выполнено</div></div>
+                <div class="stat-card"><div class="stat-number" id="percentStats">0%</div><div class="stat-label">Прогресс</div></div>
+            </div>
+
+            <!-- Графики и диаграммы -->
+            <h2>📊 Визуализация прогресса</h2>
+            <div class="charts-row">
+                <div class="chart-box">
+                    <h3>Прогресс-бар</h3>
+                    <div style="background: #e0e0e0; border-radius: 20px; height: 30px; overflow: hidden; margin: 20px;">
+                        <div id="progressFill" style="background: linear-gradient(90deg, #667eea, #764ba2); height: 100%; width: 0%; transition: width 0.5s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;"></div>
+                    </div>
+                    <p id="progressText">0% выполнено</p>
+                </div>
+            </div>
+
+            <!-- Чек-лист -->
+            <h2>📝 Чек-лист шагов</h2>
+            <div id="stepsList"></div>
+
+            <div class="button-group">
+                <button onclick="reset()" class="btn-secondary">📁 Другая инструкция</button>
+                <button id="exportPdfBtn" class="btn-success">📄 Экспорт в PDF</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">⏳ Обработка... <br><small>Распознавание и разбивка на шаги занимает несколько секунд</small></div>
+        <div id="message" class="success" style="display: none;"></div>
+        <div id="errorMsg" class="error" style="display: none;"></div>
+    </div>
+</div>
+
+<script>
+    let currentSessionId = null;
+
+    document.getElementById('uploadForm').onsubmit = async function(e) {
+        e.preventDefault();
+
+        const file = document.getElementById('fileInput').files[0];
+        if (!file) { showError('Выберите файл'); return; }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', document.getElementById('fileType').value);
+
+        hideError(); hideMessage();
+        document.getElementById('loading').style.display = 'block';
+
+        try {
+            const response = await fetch('/api/tutorial/upload-web', { method: 'POST', body: formData });
+            const result = await response.json();
+
+            if (result.success) {
+                currentSessionId = result.sessionId;
+                document.getElementById('uploadSection').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'block';
+                document.getElementById('sessionInfo').innerHTML = '<strong>✅ ID сессии:</strong> ' + currentSessionId;
+                await loadSteps();
+                await updateProgress();
+            } else {
+                showError(result.error || 'Ошибка загрузки');
+                document.getElementById('uploadSection').style.display = 'block';
+            }
+        } catch (err) {
+            showError('Ошибка: ' + err.message);
+            document.getElementById('uploadSection').style.display = 'block';
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    };
+
+    async function loadSteps() {
+        if (!currentSessionId) return;
+
+        try {
+            const response = await fetch('/api/tutorial/session/' + currentSessionId + '/steps');
+            const steps = await response.json();
+
+            const stepsDiv = document.getElementById('stepsList');
+            stepsDiv.innerHTML = '';
+
+            if (!steps || steps.length === 0) {
+                stepsDiv.innerHTML = '<p>Нет шагов для отображения</p>';
+                return;
+            }
+
+            document.getElementById('totalSteps').textContent = steps.length;
+
+            steps.forEach(step => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step' + (step.completed ? ' completed' : '');
+                stepDiv.id = 'step_' + step.number;
+                stepDiv.innerHTML = `
+                    <span class="step-number">${step.number}</span>
+                    <span class="step-description">${escapeHtml(step.description)}</span>
+                    <input type="checkbox" ${step.completed ? 'checked' : ''} onchange="toggleStep(${step.number}, this.checked)">
+                    <button class="help-btn" onclick="askHelp(${step.number}, '${escapeHtml(step.description)}')">❓ Помощь</button>
+                `;
+                stepsDiv.appendChild(stepDiv);
+            });
+
+            showMessage('✅ Инструкция загружена! ' + steps.length + ' шагов.');
+            setTimeout(() => hideMessage(), 3000);
+        } catch (err) {
+            showError('Ошибка загрузки шагов: ' + err.message);
+        }
+    }
+
+    // РАБОЧАЯ ВЕРСИЯ - отметка шага
+    async function toggleStep(stepNumber, completed) {
+        if (!currentSessionId) return;
+
+        try {
+            await fetch(`/api/tutorial/session/${currentSessionId}/step/${stepNumber}/complete`, {
+                method: 'POST'
+            });
+
+            const stepDiv = document.getElementById('step_' + stepNumber);
+            if (stepDiv) {
+                if (completed) {
+                    stepDiv.classList.add('completed');
+                } else {
+                    stepDiv.classList.remove('completed');
+                }
+            }
+
+            await updateProgress();
+        } catch (err) {
+            console.error('Error:', err);
+            showError('Ошибка при отметке шага');
+        }
+    }
+
+    // РАБОЧАЯ ВЕРСИЯ - обновление прогресса
+    async function updateProgress() {
+        if (!currentSessionId) return;
+
+        try {
+            const response = await fetch('/api/tutorial/session/' + currentSessionId + '/progress');
+            const progress = await response.json();
+            const percent = Math.round(progress);
+
+            const fill = document.getElementById('progressFill');
+            if (fill) {
+                fill.style.width = percent + '%';
+                fill.textContent = percent + '%';
+            }
+
+            document.getElementById('progressText').textContent = percent + '% выполнено';
+            document.getElementById('percentStats').textContent = percent + '%';
+
+            const stepsResponse = await fetch('/api/tutorial/session/' + currentSessionId + '/steps');
+            const steps = await stepsResponse.json();
+            const completed = steps.filter(s => s.completed).length;
+            document.getElementById('completedSteps').textContent = completed;
+
+        } catch (err) {
+            console.error('Error updating progress:', err);
+        }
+    }
+
+    async function askHelp(stepNumber, stepDescription) {
+        const problem = prompt('💬 Проблема на шаге "' + stepDescription + '":\n\nОпишите:');
+        if (problem && problem.trim()) {
+            document.getElementById('loading').style.display = 'block';
+            try {
+                const response = await fetch(`/api/tutorial/session/${currentSessionId}/next-step?problem=${encodeURIComponent(problem)}`);
+                const advice = await response.text();
+                alert('💡 Совет от ИИ:\n\n' + advice);
+            } catch (err) {
+                alert('Ошибка: ' + err.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+    }
+
+    document.getElementById('exportPdfBtn').onclick = async function() {
+        if (!currentSessionId) return;
+        document.getElementById('loading').style.display = 'block';
+        try {
+            const response = await fetch('/api/tutorial/session/' + currentSessionId + '/export/pdf');
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'checklist-' + currentSessionId + '.pdf';
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showMessage('✅ PDF скачан!');
+                setTimeout(() => hideMessage(), 2000);
+            } else {
+                showError('Ошибка экспорта PDF');
+            }
+        } catch (err) {
+            showError('Ошибка: ' + err.message);
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    };
+
+    function reset() {
+        currentSessionId = null;
+        document.getElementById('uploadSection').style.display = 'block';
+        document.getElementById('resultsSection').style.display = 'none';
+        document.getElementById('fileInput').value = '';
+        hideError(); hideMessage();
+    }
+
+    function showError(msg) { const d = document.getElementById('errorMsg'); d.textContent = msg; d.style.display = 'block'; setTimeout(() => d.style.display = 'none', 5000); }
+    function hideError() { document.getElementById('errorMsg').style.display = 'none'; }
+    function showMessage(msg) { const d = document.getElementById('message'); d.textContent = msg; d.style.display = 'block'; setTimeout(() => d.style.display = 'none', 3000); }
+    function hideMessage() { document.getElementById('message').style.display = 'none'; }
+    function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+</script>
+</body>
+</html>
