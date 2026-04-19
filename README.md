@@ -246,14 +246,15 @@
 
 ### 4.7 REST API эндпоинты
 
-| Эндпоинт | Метод | Описание |
-|----------|-------|----------|
-| /api/tutorial/upload-web | POST | Загрузка файла |
+| Эндпоинт                                       | Метод | Описание |
+|------------------------------------------------|-------|----------|
+| /api/tutorial/upload-web                       | POST | Загрузка файла |
 | /api/tutorial/session/{id}/step/{num}/complete | POST | Отметка шага |
-| /api/tutorial/session/{id}/next-step | GET | Получение совета |
-| /api/tutorial/session/{id}/steps | GET | Получение списка шагов |
-| /api/tutorial/session/{id}/progress | GET | Получение прогресса |
-| /api/tutorial/session/{id}/export/pdf | GET | Экспорт PDF |
+| /api/tutorial/session/{id}/next-step           | GET | Получение совета |
+| /api/tutorial/session/{id}/steps               | GET | Получение списка шагов |
+| /api/tutorial/session/{id}/progress            | GET | Получение прогресса |
+| /api/tutorial/session/{id}/export/pdf          | GET | Экспорт PDF |
+| /api/tutorial/{sessionId}                      | GET | Отображает страницу чек-листа |
 
 ## 5 Заключение
 
