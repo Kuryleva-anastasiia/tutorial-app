@@ -18,6 +18,7 @@ public class TutorialSession {
     private LocalDateTime createdAt;
     private LocalDateTime lastUpdated;
     private double progress;
+
     // Конструктор для быстрого создания
     public TutorialSession(String id, String originalText) {
         this.id = id;
@@ -32,6 +33,7 @@ public class TutorialSession {
     public double getProgress() {
         if (steps == null || steps.isEmpty()) return 0;
         long completedCount = steps.stream().filter(Step::isCompleted).count();
+        currentStep = (int)completedCount;
         return (double) completedCount / steps.size() * 100;
     }
 }
