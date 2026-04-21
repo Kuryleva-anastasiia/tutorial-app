@@ -1,0 +1,25 @@
+{
+  "id" : "e0ddba9e-2ea1-4c71-b312-88d85beaa419",
+  "originalText" : "Как приготовить яичницу:\r\nВозьмите яйца. Разбейте их на сковороду. Добавьте соль. Жарьте 2 минуты.",
+  "steps" : [ {
+    "number" : 1,
+    "description" : "Возьмите яйца (2-3 шт)",
+    "completed" : true
+  }, {
+    "number" : 2,
+    "description" : "Разбейте яйца на сковороду",
+    "completed" : true
+  }, {
+    "number" : 3,
+    "description" : "Добавьте соль (по вкусу)",
+    "completed" : true
+  }, {
+    "number" : 4,
+    "description" : "Жарьте на среднем огне 2 минуты",
+    "completed" : true
+  } ],
+  "currentStep" : 0,
+  "createdAt" : [ 2026, 4, 19, 15, 16, 50, 888186700 ],
+  "lastUpdated" : [ 2026, 4, 19, 15, 17, 14, 111037500 ],
+  "progress" : 100.0
+}
