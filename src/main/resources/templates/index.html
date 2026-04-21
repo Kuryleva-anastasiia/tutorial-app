@@ -100,6 +100,7 @@
     </style>
 </head>
 <body>
+
 <div class="container">
     <div class="card">
         <h1>🤖 Интерактивный ИИ-туториал</h1>
@@ -107,8 +108,10 @@
 
         <!-- Форма загрузки -->
         <div id="uploadSection">
+
+            <!-- НОВАЯ ИНСТРУКЦИЯ -->
             <div class="upload-area">
-                <h3>📤 Загрузите инструкцию</h3>
+                <h3>📤 Загрузить новую инструкцию</h3>
                 <p>Поддерживаются .txt, .jpg, .png</p>
                 <form id="uploadForm" enctype="multipart/form-data">
                     <input type="file" id="fileInput" name="file" accept=".txt,.jpg,.jpeg,.png" required/>
@@ -163,6 +166,109 @@
 <script>
     let currentSessionId = null;
 
+    // ===== ФУНКЦИЯ СОХРАНЕНИЯ ID СЕССИИ =====
+    function saveCurrentSessionId() {
+        if (currentSessionId) {
+            localStorage.setItem('lastSessionId', currentSessionId);
+            console.log('Сохранён ID сессии:', currentSessionId);
+        }
+    }
+
+    // ===== ФУНКЦИЯ ОТОБРАЖЕНИЯ ШАГОВ =====
+    async function displaySteps(steps) {
+        const stepsDiv = document.getElementById('stepsList');
+        stepsDiv.innerHTML = '';
+
+        if (!steps || steps.length === 0) {
+            stepsDiv.innerHTML = '<p>Нет шагов для отображения</p>';
+            return;
+        }
+
+        document.getElementById('totalSteps').textContent = steps.length;
+
+        steps.forEach(step => {
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'step' + (step.completed ? ' completed' : '');
+            stepDiv.id = 'step_' + step.number;
+            stepDiv.innerHTML = `
+                <span class="step-number">${step.number}</span>
+                <span class="step-description">${escapeHtml(step.description)}</span>
+                <input type="checkbox" ${step.completed ? 'checked' : ''} onchange="toggleStep(${step.number}, this.checked)">
+                <button class="help-btn" onclick="askHelp(${step.number}, '${escapeHtml(step.description)}')">❓ Помощь</button>
+            `;
+            stepsDiv.appendChild(stepDiv);
+        });
+    }
+
+    // ===== АВТОМАТИЧЕСКАЯ ЗАГРУЗКА ПОСЛЕДНЕЙ СЕССИИ =====
+    async function loadLastSession() {
+        const savedId = localStorage.getItem('lastSessionId');
+
+        if (savedId) {
+            const stepsResponse = await fetch('/api/tutorial/session/' + savedId + '/steps');
+            if (stepsResponse.ok) {
+                const steps = await stepsResponse.json();
+                if (steps && steps.length > 0) {
+                    currentSessionId = savedId;
+                    document.getElementById('uploadSection').style.display = 'none';
+                    document.getElementById('resultsSection').style.display = 'block';
+                    document.getElementById('sessionInfo').innerHTML = '<strong>✅ Загружена последняя сессия:</strong> ' + currentSessionId;
+                    await displaySteps(steps);
+                    await updateProgress();
+                    showMessage('🔄 Автоматически загружена последняя сессия. Прогресс: ' + steps.filter(s => s.completed).length + '/' + steps.length);
+                    setTimeout(() => hideMessage(), 3000);
+                    return;
+                }
+            }
+        }
+
+        try {
+            const response = await fetch('/api/debug/sessions');
+            if (response.ok) {
+                const data = await response.json();
+                const sessionIds = data.sessionIds || [];
+
+                if (sessionIds.length > 0) {
+                    const sessionsWithDates = [];
+                    for (const id of sessionIds) {
+                        const sessionResponse = await fetch('/api/tutorial/session/' + id + '/info');
+                        if (sessionResponse.ok) {
+                            const session = await sessionResponse.json();
+                            sessionsWithDates.push({
+                                id: id,
+                                lastUpdated: session.lastUpdated
+                            });
+                        }
+                    }
+
+                    sessionsWithDates.sort((a, b) => {
+                        return new Date(b.lastUpdated) - new Date(a.lastUpdated);
+                    });
+
+                    const lastSessionId = sessionsWithDates[0].id;
+                    const stepsResponse = await fetch('/api/tutorial/session/' + lastSessionId + '/steps');
+                    if (stepsResponse.ok) {
+                        const steps = await stepsResponse.json();
+                        if (steps && steps.length > 0) {
+                            currentSessionId = lastSessionId;
+                            saveCurrentSessionId();  // ✅ СОХРАНЯЕМ ID
+                            document.getElementById('uploadSection').style.display = 'none';
+                            document.getElementById('resultsSection').style.display = 'block';
+                            document.getElementById('sessionInfo').innerHTML = '<strong>✅ Загружена последняя сессия:</strong> ' + currentSessionId;
+                            await displaySteps(steps);
+                            await updateProgress();
+                            showMessage('🔄 Автоматически загружена последняя сессия. Прогресс: ' + steps.filter(s => s.completed).length + '/' + steps.length);
+                            setTimeout(() => hideMessage(), 3000);
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.log('Нет сохранённых сессий или ошибка загрузки:', err.message);
+        }
+    }
+
+    // ===== ЗАГРУЗКА НОВОЙ ИНСТРУКЦИИ =====
     document.getElementById('uploadForm').onsubmit = async function(e) {
         e.preventDefault();
 
@@ -182,11 +288,18 @@
 
             if (result.success) {
                 currentSessionId = result.sessionId;
+                saveCurrentSessionId();  // ✅ СОХРАНЯЕМ ID
                 document.getElementById('uploadSection').style.display = 'none';
                 document.getElementById('resultsSection').style.display = 'block';
                 document.getElementById('sessionInfo').innerHTML = '<strong>✅ ID сессии:</strong> ' + currentSessionId;
-                await loadSteps();
+
+                const stepsResponse = await fetch('/api/tutorial/session/' + currentSessionId + '/steps');
+                const steps = await stepsResponse.json();
+                await displaySteps(steps);
                 await updateProgress();
+
+                showMessage('✅ Инструкция загружена! ' + steps.length + ' шагов.');
+                setTimeout(() => hideMessage(), 3000);
             } else {
                 showError(result.error || 'Ошибка загрузки');
                 document.getElementById('uploadSection').style.display = 'block';
@@ -199,44 +312,7 @@
         }
     };
 
-    async function loadSteps() {
-        if (!currentSessionId) return;
-
-        try {
-            const response = await fetch('/api/tutorial/session/' + currentSessionId + '/steps');
-            const steps = await response.json();
-
-            const stepsDiv = document.getElementById('stepsList');
-            stepsDiv.innerHTML = '';
-
-            if (!steps || steps.length === 0) {
-                stepsDiv.innerHTML = '<p>Нет шагов для отображения</p>';
-                return;
-            }
-
-            document.getElementById('totalSteps').textContent = steps.length;
-
-            steps.forEach(step => {
-                const stepDiv = document.createElement('div');
-                stepDiv.className = 'step' + (step.completed ? ' completed' : '');
-                stepDiv.id = 'step_' + step.number;
-                stepDiv.innerHTML = `
-                    <span class="step-number">${step.number}</span>
-                    <span class="step-description">${escapeHtml(step.description)}</span>
-                    <input type="checkbox" ${step.completed ? 'checked' : ''} onchange="toggleStep(${step.number}, this.checked)">
-                    <button class="help-btn" onclick="askHelp(${step.number}, '${escapeHtml(step.description)}')">❓ Помощь</button>
-                `;
-                stepsDiv.appendChild(stepDiv);
-            });
-
-            showMessage('✅ Инструкция загружена! ' + steps.length + ' шагов.');
-            setTimeout(() => hideMessage(), 3000);
-        } catch (err) {
-            showError('Ошибка загрузки шагов: ' + err.message);
-        }
-    }
-
-    // РАБОЧАЯ ВЕРСИЯ - отметка шага
+    // ===== ОТМЕТКА ШАГА =====
     async function toggleStep(stepNumber, completed) {
         if (!currentSessionId) return;
 
@@ -261,7 +337,7 @@
         }
     }
 
-    // РАБОЧАЯ ВЕРСИЯ - обновление прогресса
+    // ===== ОБНОВЛЕНИЕ ПРОГРЕССА =====
     async function updateProgress() {
         if (!currentSessionId) return;
 
@@ -289,12 +365,13 @@
         }
     }
 
+    // ===== ПОМОЩЬ ОТ ИИ =====
     async function askHelp(stepNumber, stepDescription) {
         const problem = prompt('💬 Проблема на шаге "' + stepDescription + '":\n\nОпишите:');
         if (problem && problem.trim()) {
             document.getElementById('loading').style.display = 'block';
             try {
-                const response = await fetch(`/api/tutorial/session/${currentSessionId}/next-step?problem=${encodeURIComponent(problem)}`);
+                const response = await fetch(`/api/tutorial/session/${currentSessionId}/next-step?problem=${encodeURIComponent(problem)}&stepNumber=${stepNumber}`);
                 const advice = await response.text();
                 alert('💡 Совет от ИИ:\n\n' + advice);
             } catch (err) {
@@ -305,6 +382,7 @@
         }
     }
 
+    // ===== ЭКСПОРТ PDF =====
     document.getElementById('exportPdfBtn').onclick = async function() {
         if (!currentSessionId) return;
         document.getElementById('loading').style.display = 'block';
@@ -330,19 +408,27 @@
         }
     };
 
+    // ===== СБРОС =====
     function reset() {
         currentSessionId = null;
+        localStorage.removeItem('lastSessionId');  // ✅ УДАЛЯЕМ СОХРАНЁННЫЙ ID
         document.getElementById('uploadSection').style.display = 'block';
         document.getElementById('resultsSection').style.display = 'none';
         document.getElementById('fileInput').value = '';
-        hideError(); hideMessage();
+        document.getElementById('sessionIdInput').value = '';
+        hideError();
+        hideMessage();
     }
 
+    // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
     function showError(msg) { const d = document.getElementById('errorMsg'); d.textContent = msg; d.style.display = 'block'; setTimeout(() => d.style.display = 'none', 5000); }
     function hideError() { document.getElementById('errorMsg').style.display = 'none'; }
     function showMessage(msg) { const d = document.getElementById('message'); d.textContent = msg; d.style.display = 'block'; setTimeout(() => d.style.display = 'none', 3000); }
     function hideMessage() { document.getElementById('message').style.display = 'none'; }
     function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+    // ===== ЗАПУСК АВТОЗАГРУЗКИ ПРИ СТАРТЕ =====
+    loadLastSession();
 </script>
 </body>
 </html>

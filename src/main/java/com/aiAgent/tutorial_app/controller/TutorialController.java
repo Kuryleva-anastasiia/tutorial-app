@@ -125,7 +125,7 @@ public class TutorialController {
     /**
      * Страница с чек-листом для конкретной сессии
      */
-    @GetMapping("/tutorial/{sessionId}")
+    /*@GetMapping("/tutorial/{sessionId}")
     public String showTutorial(@PathVariable String sessionId, Model model) {
         System.out.println("DEBUG: Looking for session with ID: " + sessionId);
 
@@ -149,7 +149,7 @@ public class TutorialController {
         }
 
         return "tutorial";
-    }
+    }*/
 
     /**
      * Отметить шаг как выполненный (из ТЗ)
@@ -179,24 +179,36 @@ public class TutorialController {
     }
 
     /**
-     * Получить следующий шаг или совет (из ТЗ)
+     * Получить следующий шаг или совет
      */
     @GetMapping("/api/tutorial/session/{sessionId}/next-step")
     @ResponseBody
     public String getNextStepOrAdvice(
             @PathVariable String sessionId,
-            @RequestParam(required = false) String problem) {
+            @RequestParam(required = false) String problem,
+            @RequestParam(required = false) Integer stepNumber) {  // 👈 ДОБАВИТЬ параметр
 
         TutorialSession session = sessionRepository.findById(sessionId);
         if (session == null) {
             return "Сессия не найдена";
         }
 
-        // Находим первый невыполненный шаг
-        Step currentStep = session.getSteps().stream()
-                .filter(s -> !s.isCompleted())
-                .findFirst()
-                .orElse(null);
+        // Если передан номер шага - ищем конкретный шаг
+        Step currentStep = null;
+        if (stepNumber != null) {
+            currentStep = session.getSteps().stream()
+                    .filter(s -> s.getNumber() == stepNumber)
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        // Если шаг не найден по номеру - берём первый невыполненный
+        if (currentStep == null) {
+            currentStep = session.getSteps().stream()
+                    .filter(s -> !s.isCompleted())
+                    .findFirst()
+                    .orElse(null);
+        }
 
         if (currentStep == null) {
             return "Поздравляю! Вы выполнили все шаги! 🎉";
@@ -231,7 +243,7 @@ public class TutorialController {
         return session != null ? session.getSteps() : List.of();
     }
 
-    @PostMapping("/api/tutorial/session/{sessionId}/step/{stepNumber}/toggle")
+    /*@PostMapping("/api/tutorial/session/{sessionId}/step/{stepNumber}/toggle")
     @ResponseBody
     public String toggleStep(
             @PathVariable String sessionId,
@@ -256,7 +268,7 @@ public class TutorialController {
         sessionRepository.save(session);
 
         return "ok";
-    }
+    }*/
 
     /**
      * Экспорт чек-листа в PDF (из ТЗ)
@@ -286,5 +298,15 @@ public class TutorialController {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @GetMapping("/api/debug/sessions")
+    @ResponseBody
+    public Map<String, Object> debugSessions() {
+        Map<String, Object> debug = new HashMap<>();
+        debug.put("dataDir", System.getProperty("user.home") + "/tutorial-app-data");
+        debug.put("sessionsCount", sessionRepository.getAllSessions().size());
+        debug.put("sessionIds", sessionRepository.getAllSessions().keySet());
+        return debug;
     }
 }

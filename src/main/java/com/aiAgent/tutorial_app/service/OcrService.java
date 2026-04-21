@@ -63,8 +63,8 @@ public class OcrService {
     }
 
     /**
-     * Предварительная обработка изображения для улучшения распознавания (опционально)
-     * Можно добавить поворот, масштабирование, повышение контрастности
+     * Предварительная обработка изображения для улучшения распознавания
+     *
      */
     public byte[] preprocessImage(MultipartFile imageFile, int targetWidth, int targetHeight) throws IOException {
         BufferedImage original = ImageIO.read(new ByteArrayInputStream(imageFile.getBytes()));
